@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 · 最后一盏灯 · 立冬来信</title>
+<style>
+  :root{
+    --night:#050810;
+    --ground:#0B1120;
+    --warm:#F6C85F;
+    --warm-lt:#FFF3C9;
+    --text:#FBF3DF;
+    --text-dim:#B9C7DE;
+    --text-faint:#6E82A6;
+    --wood:#E3C08A;
+    --wood-edge:#6B4A2E;
+    --pixel-font:"Fusion Pixel","Zpix","DotGothic16","Sarasa Mono SC","Microsoft YaHei",monospace;
+    --en-font:"Silkscreen","DotGothic16",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#04060C;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+
+  #stage{
+    position:relative;flex:0 0 auto;
+    width:1440px;height:900px;
+    background:var(--night);
+    overflow:hidden;
+    transform-origin:center center;
+    font-family:var(--pixel-font);
+    -webkit-font-smoothing:none;
+    user-select:none;touch-action:none;
+  }
+  #stage.dragging{cursor:grabbing}
+
+  /* ---------- 收光场景：打字阶段整体压到极暗 ---------- */
+  #sceneLayer{
+    position:absolute;inset:0;z-index:1;
+    transition:opacity 1200ms ease,filter 1200ms ease;
+  }
+  #sceneLayer.dim{opacity:.13;filter:brightness(.7)}
+  #sceneSvg{position:absolute;left:0;top:0}
+
+  /* ---------- 路灯 ---------- */
+  .lamp{position:absolute;width:40px;height:64px;pointer-events:auto;cursor:grab}
+  .lamp svg{display:block;width:40px;height:64px;position:relative;z-index:2}
+  .bulb{fill:#F6C85F;transition:fill 420ms ease}
+  .halo{
+    position:absolute;left:16px;top:12px;width:8px;height:8px;z-index:0;
+    background:#FFF3C9;
+    box-shadow:0 0 0 8px rgba(246,200,95,.28),
+               0 0 0 20px rgba(246,200,95,.13),
+               0 0 0 36px rgba(246,200,95,.05);
+    transition:box-shadow 500ms ease,background 500ms ease,opacity 500ms ease;
+  }
+  .pool{
+    position:absolute;left:0;top:58px;width:40px;height:8px;z-index:1;
+    background:#F6C85F;opacity:.26;transition:opacity 500ms ease;
+  }
+  .hit{position:absolute;left:-20px;top:-16px;width:80px;height:96px;z-index:3}
+  .lamp.dragging .bulb{fill:#FFF3C9}
+  .lamp.dragging .halo{transform:scale(1.18)}
+  .lamp.gone{cursor:default}
+  .lamp.gone .bulb{fill:#1A2233}
+  .lamp.gone .halo{background:transparent;box-shadow:none;opacity:0}
+  .lamp.gone .pool{opacity:0}
+  .lamp.gone svg{animation:none}
+  .lamp.lit svg{animation:breathe 4.2s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.86}50%{opacity:1}}
+
+  /* ---------- 拖动光束 / 粒子 ---------- */
+  #beam{position:absolute;inset:0;z-index:5;pointer-events:none}
+  /* 四角像素取景框：提示投放位置，但不盖住男孩 */
+  #dropRing{
+    position:absolute;width:132px;height:132px;z-index:5;
+    pointer-events:none;opacity:0;
+    transition:opacity 220ms ease,transform 220ms ease;
+  }
+  #dropRing .c{position:absolute;width:22px;height:22px;border:4px solid #F6C85F}
+  #dropRing .tl{left:0;top:0;border-right:none;border-bottom:none}
+  #dropRing .tr{right:0;top:0;border-left:none;border-bottom:none}
+  #dropRing .bl{left:0;bottom:0;border-right:none;border-top:none}
+  #dropRing .br{right:0;bottom:0;border-left:none;border-top:none}
+  #dropRing.near{opacity:1;transform:scale(1.06)}
+  #dropRing.near .c{border-color:#FFF3C9}
+  #dropRing.far{opacity:.36}
+  #dragLabel{
+    position:absolute;z-index:6;pointer-events:none;
+    font-size:12px;letter-spacing:2px;color:var(--warm);
+    background:rgba(9,16,30,.88);border:2px solid rgba(246,200,95,.45);
+    padding:4px 10px;white-space:nowrap;opacity:0;
+    transition:opacity 200ms ease;
+  }
+  #dragLabel.show{opacity:1}
+  .mote{position:absolute;width:8px;height:8px;background:#FFF3C9;z-index:6;pointer-events:none}
+
+  /* ---------- 男孩 / 熄灯器 / 星芒 ---------- */
+  #glow{
+    position:absolute;left:665px;top:568px;width:160px;height:160px;z-index:6;
+    border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,
+      rgba(255,237,168,.30) 0%,
+      rgba(255,216,120,.09) 46%,
+      rgba(255,216,120,0) 72%);
+    transform:scale(.55);opacity:.55;
+    transition:transform 700ms ease,opacity 700ms ease;
+  }
+  #glow.burst{animation:glowBurst 1200ms ease-out}
+  @keyframes glowBurst{
+    0%{transform:scale(1);opacity:1}
+    24%{transform:scale(1.85);opacity:1}
+    100%{transform:scale(1.25);opacity:.95}
+  }
+  #boy{position:absolute;left:688px;top:620px;width:64px;height:96px;z-index:8}
+  #boy svg{width:100%;height:100%;display:block}
+  #del{position:absolute;left:733px;top:636px;width:24px;height:24px;z-index:9}
+  #del svg{width:100%;height:100%;display:block;transition:filter 400ms ease}
+  #del.pulse svg{filter:drop-shadow(0 0 12px rgba(255,243,201,.95))}
+  #star{position:absolute;left:713px;top:608px;width:64px;height:64px;z-index:10;pointer-events:none;opacity:0;transition:opacity 700ms ease}
+  #star svg{width:100%;height:100%;display:block;animation:breathe 3.4s ease-in-out infinite}
+  #star.awake{opacity:1}
+  #star.flash{animation:starFlash 950ms cubic-bezier(.2,.8,.3,1)}
+  @keyframes starFlash{
+    0%{transform:scale(1)}
+    26%{transform:scale(1.8);filter:drop-shadow(0 0 20px rgba(255,242,196,.95))}
+    100%{transform:scale(1)}
+  }
+
+  /* ---------- 收光 HUD ---------- */
+  #hud{position:absolute;inset:0;z-index:12;pointer-events:none;transition:opacity 700ms ease}
+  #hud.hide{opacity:0}
+  #chapter{position:absolute;left:48px;top:28px;font-size:24px;letter-spacing:4px;color:#FBF3DF}
+  #chapterSub{position:absolute;left:50px;top:66px;font-size:12px;letter-spacing:3px;color:#5E7296}
+  #progress{position:absolute;right:32px;top:26px;text-align:right}
+  #pTitle{font-size:13px;letter-spacing:2px;color:#8FA6C9}
+  #pdots{display:flex;gap:6px;justify-content:flex-end;margin-top:12px}
+  .pdot{width:16px;height:10px;background:#222E42;border:2px solid #161F2E}
+  .pdot.on{background:var(--warm);border-color:#C99A3E}
+  #collectHint{
+    position:absolute;left:0;top:846px;width:1440px;text-align:center;
+    font-size:14px;letter-spacing:3px;color:#7E93B4;
+    transition:opacity 400ms ease,color 400ms ease;
+  }
+  #collectHint.warm{color:var(--warm)}
+
+  /* ---------- 打字文字 ---------- */
+  #words{
+    position:absolute;left:0;top:0;width:1440px;height:900px;z-index:11;
+    opacity:0;transition:opacity 900ms ease;pointer-events:none;
+  }
+  #words.show{opacity:1}
+  .line{position:absolute;left:0;width:1440px;text-align:center;white-space:pre}
+  .line .box{position:relative;display:inline-block;white-space:pre}
+  .line .ghost{visibility:hidden}
+  .line .live{position:absolute;left:0;top:0;white-space:pre}
+  .cur{
+    display:none;width:.3em;height:.8em;background:var(--warm-lt);
+    margin-left:.08em;position:relative;top:.04em;
+    animation:blink .85s steps(1) infinite;
+  }
+  .cur.on{display:inline-block}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  #l1{top:146px;font-size:18px;letter-spacing:.22em;color:var(--text-faint)}
+  #l2{top:212px;font-size:52px;letter-spacing:.16em;color:var(--text);text-shadow:6px 6px 0 rgba(3,5,11,.9)}
+  #l3{top:328px;font-size:24px;letter-spacing:.22em;color:var(--text-dim)}
+  #l4{top:382px;font-size:22px;letter-spacing:.13em;color:var(--text-dim)}
+  #l5{top:428px;font-size:22px;letter-spacing:.26em;color:var(--warm)}
+
+  /* 全站落款：不再是可点击的操作提示 */
+  #hint{
+    position:absolute;left:0;top:802px;width:1440px;text-align:center;z-index:13;
+    font-size:22px;letter-spacing:.42em;text-indent:.42em;
+    color:#F6EEDC;
+    text-shadow:0 0 20px rgba(246,200,95,.34),4px 4px 0 rgba(3,5,11,.9);
+    opacity:0;transform:translateY(10px);pointer-events:none;
+    transition:opacity 1400ms ease,transform 1400ms ease;
+  }
+  #hint.show{opacity:1;transform:translateY(0)}
+
+  /* ---------- 控件 ---------- */
+  .ctl{
+    position:absolute;bottom:16px;z-index:14;
+    font-family:inherit;font-size:12px;letter-spacing:1px;
+    color:#5E7296;background:none;border:none;cursor:pointer;
+    opacity:.72;transition:opacity .3s,color .3s;
+  }
+  .ctl:hover{opacity:1;color:#8FA6C9}
+  #back{right:112px}
+  #replay{right:24px}
+  /* 终点画面：收尾时控件淡出，只剩歌词、星芒与落款 */
+  #stage.ending .ctl{
+    opacity:0;pointer-events:none;transition:opacity 900ms ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- 收光场景：侧视夜景，与画布 07A 设计稿一致 -->
+  <div id="sceneLayer">
+    <svg id="sceneSvg" width="1440" height="900" viewBox="0 0 1440 900" shape-rendering="crispEdges">
+      <rect width="1440" height="900" fill="#050810"/>
+      <!-- 星点 -->
+      <g fill="#9FB3D4" fill-opacity=".30">
+        <rect x="96" y="64" width="4" height="4"/><rect x="252" y="132" width="4" height="4"/>
+        <rect x="428" y="52" width="4" height="4"/><rect x="604" y="108" width="4" height="4"/>
+        <rect x="880" y="72" width="4" height="4"/><rect x="1046" y="84" width="4" height="4"/>
+        <rect x="1214" y="164" width="4" height="4"/><rect x="1332" y="56" width="4" height="4"/>
+        <rect x="1400" y="220" width="4" height="4"/><rect x="60" y="220" width="4" height="4"/>
+      </g>
+      <!-- 远处校舍剪影 -->
+      <path fill="#080D18" d="M0 300 V196 H100 V172 H240 V198 H340 V160 H480 V190 H600 V168 H720 V198 H840 V158 H980 V190 H1100 V172 H1240 V198 H1340 V176 H1440 V300 Z"/>
+      <rect y="298" width="1440" height="3" fill="#1A2A45"/>
+      <rect y="301" width="1440" height="599" fill="#0B1120"/>
+      <!-- 地面零星暗块（呼应 07B 灯影） -->
+      <g fill="#16203A">
+        <rect x="120" y="392" width="20" height="8"/><rect x="356" y="452" width="28" height="8"/>
+        <rect x="620" y="360" width="20" height="8"/><rect x="900" y="470" width="28" height="8"/>
+        <rect x="1180" y="404" width="20" height="8"/><rect x="240" y="700" width="28" height="8"/>
+        <rect x="700" y="782" width="20" height="8"/><rect x="1080" y="740" width="28" height="8"/>
+        <rect x="1320" y="620" width="20" height="8"/><rect x="480" y="640" width="20" height="8"/>
+      </g>
+    </svg>
+    <div id="lampLayer"></div>
+  </div>
+
+  <svg id="beam" width="1440" height="900" viewBox="0 0 1440 900" shape-rendering="crispEdges"></svg>
+  <div id="dropRing"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i></div>
+  <div id="dragLabel"></div>
+
+  <div id="glow"></div>
+
+  <div id="boy">
+    <svg viewBox="0 0 64 96">
+      <rect x="14" y="90" width="36" height="6" fill="#03060B" fill-opacity="0.6"/>
+      <rect x="24" y="62" width="8" height="26" fill="#161F2D"/>
+      <rect x="34" y="62" width="8" height="26" fill="#161F2D"/>
+      <rect x="22" y="86" width="12" height="6" fill="#090E16"/>
+      <rect x="32" y="86" width="12" height="6" fill="#090E16"/>
+      <rect x="20" y="30" width="26" height="34" fill="#232F42"/>
+      <rect x="20" y="30" width="26" height="5" fill="#2B3A52"/>
+      <rect x="14" y="32" width="6" height="22" fill="#232F42"/>
+      <rect x="46" y="16" width="6" height="20" fill="#232F42"/>
+      <rect x="45" y="10" width="8" height="7" fill="#D8BD96"/>
+      <rect x="24" y="8" width="18" height="22" fill="#2E2116"/>
+      <rect x="24" y="8" width="18" height="5" fill="#3A2A1B"/>
+      <rect x="26" y="36" width="14" height="15" fill="#4A3B29"/>
+      <rect x="26" y="36" width="14" height="3" fill="#584735"/>
+    </svg>
+  </div>
+
+  <div id="del">
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" fill="#D9E4EE"/>
+      <rect x="3" y="3" width="18" height="4" fill="#F2F8FC"/>
+      <rect x="9" y="9" width="8" height="8" fill="#A8BCCB"/>
+      <rect x="11" y="11" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="2" y="21" width="20" height="3" fill="#B4C4D2"/>
+    </svg>
+  </div>
+
+  <div id="star">
+    <svg viewBox="0 0 64 64">
+      <rect x="30" y="2" width="4" height="60" fill="#FFF3C9" fill-opacity="0.9"/>
+      <rect x="2" y="30" width="60" height="4" fill="#FFF3C9" fill-opacity="0.9"/>
+      <rect x="27" y="27" width="10" height="10" fill="#FFFFFF"/>
+      <rect x="20" y="20" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="41" y="20" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="20" y="41" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="41" y="41" width="3" height="3" fill="#FFE9A8"/>
+    </svg>
+  </div>
+
+  <div id="hud">
+    <div id="chapter">07 · 最后一盏灯</div>
+    <div id="chapterSub">校园地图 · 天黑以后</div>
+    <div id="progress">
+      <div id="pTitle">已收光 0 / 7</div>
+      <div id="pdots"></div>
+    </div>
+    <div id="collectHint">按住一盏灯，把光拖到熄灯器里 · 一道一道收</div>
+  </div>
+
+  <div id="words">
+    <p class="line" id="l1"><span class="box"><span class="ghost">我有一句很喜欢的陈奕迅的歌词</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l2"><span class="box"><span class="ghost">不要紧 山野都有路灯</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l3"><span class="box"><span class="ghost">或许我们的山路很长</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l4"><span class="box"><span class="ghost">那就希望我们可以一直收集路上的灯</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l5"><span class="box"><span class="ghost">点亮心的光吧</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+  </div>
+
+  <p id="hint">晚安寿星</p>
+  <button class="ctl" id="back">← 返回 02</button>
+  <button class="ctl" id="replay">↻ 重播</button>
+</div>
+
+<script>
+(function(){
+  var stage  = document.getElementById('stage');
+  var lampLayer = document.getElementById('lampLayer');
+  var beam   = document.getElementById('beam');
+  var ring   = document.getElementById('dropRing');
+  var dragLb = document.getElementById('dragLabel');
+  var glow   = document.getElementById('glow');
+  var del    = document.getElementById('del');
+  var star   = document.getElementById('star');
+  var hud    = document.getElementById('hud');
+  var words  = document.getElementById('words');
+  var hint   = document.getElementById('hint');
+  var hintTx = document.getElementById('collectHint');
+  var pTitle = document.getElementById('pTitle');
+  var scene  = document.getElementById('sceneLayer');
+
+  /* ================= 七盏灯：编号与 02 一一对应 ================= */
+  var LAMPS = [
+    {no:'01', name:'一饭路上',       x:250,  y:330},
+    {no:'02', name:'楼梯口',         x:470,  y:262},
+    {no:'03', name:'实验楼 · 傍晚',  x:660,  y:224},
+    {no:'04', name:'百叶窗后的光',   x:930,  y:250},
+    {no:'05', name:'二饭',           x:1150, y:330},
+    {no:'06', name:'那条大路',       x:300,  y:660},
+    {no:'07', name:'实验楼 · 清晨',  x:1090, y:640}
+  ];
+  var DEL = {x:745, y:648};   // 熄灯器中心，也是投放判定中心
+  var DROP_R = 100;
+
+  /* 从 02 继承「哪些灯被点亮过」；单独打开本原型时默认七盏全亮 */
+  var litFrom02 = null;
+  try {
+    var v = JSON.parse(localStorage.getItem('winter-letter:lit'));
+    if (Array.isArray(v) && v.length === 7 && v.some(Boolean)) litFrom02 = v;
+  } catch(e){}
+  var ACTIVE = [];
+  LAMPS.forEach(function(l, i){
+    if (!litFrom02 || litFrom02[i]) ACTIVE.push(i);
+  });
+  if (ACTIVE.length === 0) ACTIVE = LAMPS.map(function(_, i){ return i; });
+  var TOTAL = ACTIVE.length;
+
+  /* ================= 生成路灯 / 进度点 ================= */
+  var lamps = [];
+  var pdots = [];
+  LAMPS.forEach(function(l, i){
+    var el = document.createElement('div');
+    el.className = 'lamp' + (ACTIVE.indexOf(i) >= 0 ? ' lit' : ' gone');
+    el.style.left = l.x + 'px';
+    el.style.top  = l.y + 'px';
+    el.setAttribute('data-i', i);
+    el.innerHTML =
+      '<div class="halo"></div><div class="pool"></div>' +
+      '<svg viewBox="0 0 40 64" shape-rendering="crispEdges">' +
+        '<rect x="12" y="60" width="16" height="4" fill="#12192A"/>' +
+        '<rect x="18" y="22" width="4" height="38" fill="#1A2233"/>' +
+        '<rect x="8"  y="6"  width="24" height="4" fill="#12192A"/>' +
+        '<rect x="10" y="10" width="20" height="4" fill="#20293C"/>' +
+        '<rect class="bulb" x="12" y="14" width="16" height="10"/>' +
+        '<rect x="10" y="24" width="20" height="4" fill="#12192A"/>' +
+      '</svg>' +
+      '<div class="hit"></div>';
+    lampLayer.appendChild(el);
+    lamps.push(el);
+    var pd = document.createElement('div');
+    pd.className = 'pdot';
+    document.getElementById('pdots').appendChild(pd);
+    pdots.push(pd);
+  });
+  ring.style.left = (DEL.x - 66) + 'px';
+  ring.style.top  = (DEL.y - 66) + 'px';
+
+  /* ================= 状态 ================= */
+  var collected = LAMPS.map(function(){ return false; });
+  var count = 0;
+  var phase = 'collect';   // collect → flash → typing → done
+  var drag  = null;        // {i, lamp}
+  var gen   = 0;           // 重播代号：让正在跑的异步链立刻作废
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function centerOf(i){ return {x: LAMPS[i].x + 20, y: LAMPS[i].y + 18}; }
+  function refreshHUD(){
+    pTitle.textContent = '已收光 ' + count + ' / ' + TOTAL;
+    pdots.forEach(function(d, i){ d.classList.toggle('on', collected[i]); });
+  }
+
+  function toStage(e){
+    var r = stage.getBoundingClientRect();
+    var s = r.width / 1440;
+    return { x:(e.clientX - r.left) / s, y:(e.clientY - r.top) / s };
+  }
+
+  /* 光束：一串量化到 8px 网格的暖黄方块，跟随指针 */
+  function drawBeam(from, to, near){
+    while (beam.firstChild) beam.removeChild(beam.firstChild);
+    var dx = to.x - from.x, dy = to.y - from.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var n = Math.max(3, Math.min(22, Math.round(dist / 30)));
+    for (var k = 0; k < n; k++){
+      var t = (k + 1) / (n + 1);
+      var jx = Math.sin(t * 9 + k * 1.7) * 6;
+      var jy = Math.cos(t * 8 + k * 1.3) * 6;
+      var x = Math.round((from.x + dx * t + jx) / 8) * 8;
+      var y = Math.round((from.y + dy * t + jy) / 8) * 8;
+      var sz = k === n - 1 ? 10 : (k % 3 === 0 ? 8 : 6);
+      var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', y);
+      rect.setAttribute('width', sz); rect.setAttribute('height', sz);
+      rect.setAttribute('fill', near ? '#FFF3C9' : '#F6C85F');
+      rect.setAttribute('fill-opacity', (0.95 - t * 0.58).toFixed(2));
+      beam.appendChild(rect);
+    }
+  }
+  function clearBeam(){ while (beam.firstChild) beam.removeChild(beam.firstChild); }
+
+  /* 收集成功：一串像素方块从灯飞进熄灯器 */
+  function flyMotes(i){
+    var from = centerOf(i);
+    for (var k = 0; k < 10; k++){
+      var m = document.createElement('div');
+      m.className = 'mote';
+      m.style.left = from.x + 'px';
+      m.style.top  = from.y + 'px';
+      m.style.opacity = (0.55 + k * 0.04).toFixed(2);
+      stage.appendChild(m);
+      var delay = k * 38;
+      var dx = DEL.x - from.x + (k % 3 - 1) * 14;
+      var dy = DEL.y - from.y + (k % 2 ? 10 : -10);
+      var anim = m.animate([
+        {transform:'translate(0px,0px) scale(1)', opacity:m.style.opacity},
+        {transform:'translate(' + (dx * .55) + 'px,' + (dy * .55 - 26) + 'px) scale(1.25)', opacity:1},
+        {transform:'translate(' + dx + 'px,' + dy + 'px) scale(.35)', opacity:0}
+      ], {duration:640, delay:delay, easing:'cubic-bezier(.35,.6,.3,1)', fill:'forwards'});
+      anim.onfinish = (function(el){ return function(){ el.remove(); }; })(m);
+    }
+  }
+
+  function lightPulse(){
+    del.classList.add('pulse');
+    setTimeout(function(){ del.classList.remove('pulse'); }, 520);
+  }
+
+  function collect(i){
+    if (collected[i] || phase !== 'collect') return;
+    collected[i] = true;
+    count++;
+    lamps[i].classList.remove('lit','dragging');
+    lamps[i].classList.add('gone');
+    flyMotes(i);
+    setTimeout(lightPulse, 320);
+    glow.style.transform = 'scale(' + (0.55 + count / TOTAL * 0.75).toFixed(2) + ')';
+    glow.style.opacity = (0.55 + count / TOTAL * 0.4).toFixed(2);
+    refreshHUD();
+    if (count >= TOTAL) finishCollect();
+  }
+
+  /* ================= 拖动 ================= */
+  stage.addEventListener('pointerdown', function(e){
+    if (phase !== 'collect') return;
+    var el = e.target.closest ? e.target.closest('.lamp') : null;
+    if (!el) return;
+    var i = parseInt(el.getAttribute('data-i'), 10);
+    if (collected[i] || ACTIVE.indexOf(i) < 0) return;
+    e.preventDefault();
+    drag = { i:i, el:el };
+    el.classList.add('dragging');
+    stage.classList.add('dragging');
+    dragLb.textContent = LAMPS[i].no + ' · ' + LAMPS[i].name;
+    dragLb.classList.add('show');
+    var p = toStage(e);
+    var c = centerOf(i);
+    dragLb.style.left = (c.x - 40) + 'px';
+    dragLb.style.top  = (c.y - 46) + 'px';
+    drawBeam(c, p, false);
+    ring.classList.add('far');
+  });
+
+  window.addEventListener('pointermove', function(e){
+    if (!drag || phase !== 'collect') return;
+    var p = toStage(e);
+    var d = Math.sqrt((p.x - DEL.x) * (p.x - DEL.x) + (p.y - DEL.y) * (p.y - DEL.y));
+    var near = d < DROP_R;
+    drawBeam(centerOf(drag.i), p, near);
+    ring.classList.toggle('near', near);
+    ring.classList.toggle('far', !near);
+    hintTx.textContent = near ? '松开 · 把这一盏收进熄灯器' : '按住一盏灯，把光拖到熄灯器里 · 一道一道收';
+    hintTx.classList.toggle('warm', near);
+  });
+
+  function endDrag(e){
+    if (!drag) return;
+    var p = e ? toStage(e) : {x:-9999,y:-9999};
+    var d = Math.sqrt((p.x - DEL.x) * (p.x - DEL.x) + (p.y - DEL.y) * (p.y - DEL.y));
+    var ok = d < DROP_R;
+    var i = drag.i;
+    drag.el.classList.remove('dragging');
+    stage.classList.remove('dragging');
+    dragLb.classList.remove('show');
+    ring.classList.remove('near','far');
+    clearBeam();
+    hintTx.classList.remove('warm');
+    hintTx.textContent = '按住一盏灯，把光拖到熄灯器里 · 一道一道收';
+    drag = null;
+    if (ok) collect(i);
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', function(){ endDrag(null); });
+
+  /* 键盘 1–7：不拖动也能收光，方便快速验证后半段 */
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'r' || e.key === 'R'){ replay(); return; }
+    if (phase !== 'collect') return;
+    if (e.key >= '1' && e.key <= '7'){
+      var i = parseInt(e.key, 10) - 1;
+      if (ACTIVE.indexOf(i) >= 0) collect(i);
+    }
+  });
+
+  /* ================= 收光完成 → 星芒 → 打字 ================= */
+  async function finishCollect(){
+    var myGen = gen;
+    phase = 'flash';
+    hintTx.textContent = '光都收进来了';
+    await sleep(420);
+    if (myGen !== gen) return;
+    star.classList.add('awake');
+    star.classList.add('flash');
+    glow.classList.add('burst');
+    lightPulse();
+    await sleep(1100);
+    if (myGen !== gen) return;
+    await beginTyping(myGen);
+  }
+
+  var LINES = [
+    { sel:'#l1', text:'我有一句很喜欢的陈奕迅的歌词',   speed: 56, hold: 560 },
+    { sel:'#l2', text:'不要紧 山野都有路灯',           speed:128, hold: 700 },
+    { sel:'#l3', text:'或许我们的山路很长',             speed: 78, hold: 320 },
+    { sel:'#l4', text:'那就希望我们可以一直收集路上的灯', speed: 70, hold: 360 },
+    { sel:'#l5', text:'点亮心的光吧',                   speed:142, hold: 560 }
+  ];
+
+  async function typeLine(cfg, myGen){
+    var root  = document.querySelector(cfg.sel);
+    var typed = root.querySelector('.typed');
+    var cur   = root.querySelector('.cur');
+    cur.classList.add('on');
+    var chars = Array.from(cfg.text);
+    for (var i = 0; i < chars.length; i++){
+      if (myGen !== gen) return false;
+      typed.textContent += chars[i];
+      var d = cfg.speed * (0.82 + Math.random() * 0.42);
+      if (chars[i] === ' ') d += 150;
+      await sleep(d);
+    }
+    cur.classList.remove('on');
+    await sleep(cfg.hold);
+    return myGen === gen;
+  }
+
+  async function beginTyping(myGen){
+    phase = 'typing';
+    hud.classList.add('hide');
+    scene.classList.add('dim');
+    words.classList.add('show');
+    await sleep(900);
+    if (myGen !== gen) return;
+    document.querySelectorAll('.typed').forEach(function(el){ el.textContent = ''; });
+    document.querySelectorAll('.cur').forEach(function(el){ el.classList.remove('on'); });
+    star.classList.remove('flash');
+    glow.classList.remove('burst');
+    for (var i = 0; i < LINES.length; i++){
+      if (!await typeLine(LINES[i], myGen)) return;
+    }
+    if (myGen !== gen) return;
+    star.classList.add('flash');
+    glow.classList.add('burst');
+    await sleep(620);
+    if (myGen !== gen) return;
+    hint.classList.add('show');
+    stage.classList.add('ending');
+    phase = 'done';
+  }
+
+  /* ================= 控件 / 重播 ================= */
+  function replay(){
+    gen++;                       // 中止正在跑的闪光 / 打字异步链
+    collected = LAMPS.map(function(){ return false; });
+    count = 0;
+    phase = 'collect';
+    drag = null;
+    document.querySelectorAll('.mote').forEach(function(el){ el.remove(); });
+    clearBeam();
+    ring.classList.remove('near','far');
+    dragLb.classList.remove('show');
+    lamps.forEach(function(el, i){
+      el.classList.remove('dragging','gone');
+      el.classList.toggle('lit', ACTIVE.indexOf(i) >= 0);
+    });
+    stage.classList.remove('dragging');
+    star.classList.remove('awake','flash');
+    glow.classList.remove('burst');
+    glow.style.transform = 'scale(.55)';
+    glow.style.opacity = '.55';
+    scene.classList.remove('dim');
+    hud.classList.remove('hide');
+    words.classList.remove('show');
+    stage.classList.remove('ending');
+    hint.classList.remove('show');
+    hintTx.textContent = '按住一盏灯，把光拖到熄灯器里 · 一道一道收';
+    hintTx.classList.remove('warm');
+    document.querySelectorAll('.typed').forEach(function(el){ el.textContent = ''; });
+    document.querySelectorAll('.cur').forEach(function(el){ el.classList.remove('on'); });
+    refreshHUD();
+  }
+
+  document.getElementById('replay').addEventListener('click', function(e){ e.stopPropagation(); replay(); });
+  document.getElementById('back').addEventListener('click', function(e){
+    e.stopPropagation(); window.location.href = '02-memory-map.html';
+  });
+
+  /* 直达入口：?skip=1 跳到收光完成，专门用来验证打字衔接 */
+  if (new URLSearchParams(location.search).get('skip') === '1'){
+    ACTIVE.forEach(function(i){ collected[i] = true; });
+    count = TOTAL;
+    lamps.forEach(function(el){ el.classList.remove('lit'); el.classList.add('gone'); });
+    refreshHUD();
+    glow.style.transform = 'scale(1.3)';
+    glow.style.opacity = '.95';
+    finishCollect();
+  }
+
+  /* ================= 等比缩放 ================= */
+  function fit(){
+    var s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  refreshHUD();
+
+  /* 直达入口：?drag=4 停在「第 4 盏正被拖向熄灯器」的状态，用来检查光束与投放圈 */
+  var dragIdx = parseInt(new URLSearchParams(location.search).get('drag'), 10);
+  if (dragIdx >= 1 && dragIdx <= 7 && ACTIVE.indexOf(dragIdx - 1) >= 0){
+    var idx = dragIdx - 1;
+    var r = stage.getBoundingClientRect();
+    var s = r.width / 1440;
+    var c = centerOf(idx);
+    lamps[idx].querySelector('.hit').dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles:true, clientX:r.left + c.x * s, clientY:r.top + c.y * s
+    }));
+    window.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles:true, clientX:r.left + (DEL.x - 40) * s, clientY:r.top + (DEL.y - 30) * s
+    }));
+  }
+})();
+</script>
+</body>
+</html>

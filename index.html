@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>立冬来信</title>
+<style>
+  :root{
+    --night:#070B18; --cream:#FBF3DF; --warm:#F6C85F; --dim:#5E7296;
+    --wood:#E2BE86; --wood-edge:#8A5A32;
+    --cn:"Fusion Pixel","Zpix","Microsoft YaHei",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:var(--night)}
+  body{font-family:var(--cn);-webkit-font-smoothing:none}
+
+  /* 外壳不显示任何画面：第一页就是 00 冬夜来信封面 */
+  #frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:var(--night)}
+
+  /* ---------- 右下角音乐开关：默认关，用户自己决定开不开 ---------- */
+  /* bottom 抬到 72px，避开 07 收光阶段 bottom:16px 的「返回 02 / 重播」 */
+  #musicBtn{
+    position:fixed;right:24px;bottom:72px;z-index:30;
+    display:flex;align-items:center;gap:9px;height:40px;padding:0 16px;
+    font-family:inherit;font-size:13px;letter-spacing:.1em;cursor:pointer;
+    background:#16213A;color:#A9BEDD;border:4px solid #3C5072;
+    box-shadow:6px 6px 0 rgba(3,6,14,.5);
+    transition:background .25s,color .25s,border-color .25s;
+  }
+  #musicBtn:hover{background:#1E2C4A}
+  #musicBtn.on{background:var(--wood);color:#4A3220;border-color:var(--wood-edge)}
+  #musicBtn .ico{font-size:16px;line-height:1}
+
+  /* ---------- 官方外链播放器：只在打开音乐时出现 ---------- */
+  #onlineBox{
+    position:fixed;right:24px;bottom:124px;z-index:31;width:342px;
+    background:#101B30;border:4px solid #3C5072;
+    box-shadow:8px 8px 0 rgba(3,6,14,.5);
+    opacity:0;pointer-events:none;transform:translateY(8px);
+    transition:opacity 350ms ease,transform 350ms ease;
+  }
+  #onlineBox.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+  #onlineBar{
+    height:32px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 10px 0 12px;background:#16213A;
+    color:var(--warm);font-size:11px;letter-spacing:.08em;
+  }
+  #onlineClose{color:#8FA6C9;cursor:pointer}
+  #onlineClose:hover{color:var(--warm)}
+  #onlineBody{overflow:hidden;height:110px;transition:height 300ms ease}
+  #onlineBox.fold #onlineBody{height:0}
+  #onlineFrame{display:block;width:330px;height:86px;border:0;background:#fff}
+  #onlineNote{
+    height:24px;display:flex;align-items:center;padding:0 12px;
+    color:#8FA6C9;font-size:10px;letter-spacing:.02em;white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- 章节都在这个不刷新的容器里切换，播放器挂在外层，所以打开音乐后四章不断 -->
+<iframe id="frame" src="00-winter-letter.html" title="立冬来信"></iframe>
+
+<button id="musicBtn" title="点一下打开 September（网易云官方外链）">
+  <span class="ico">♪</span><span id="musicTxt">音乐 关</span>
+</button>
+
+<div id="onlineBox" aria-label="September 在线播放器">
+  <div id="onlineBar">♪ September · 网易云 <span id="onlineClose">− 收起</span></div>
+  <div id="onlineBody">
+    <iframe id="onlineFrame" title="September 在线播放" frameborder="0" scrolling="no" allow="autoplay"></iframe>
+    <div id="onlineNote">音量请在播放器里自己调 · 需联网 · 没出声按一下播放键</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var musicBtn    = document.getElementById('musicBtn');
+  var musicTxt    = document.getElementById('musicTxt');
+  var onlineBox   = document.getElementById('onlineBox');
+  var onlineBody  = document.getElementById('onlineBody');
+  var onlineFrame = document.getElementById('onlineFrame');
+  var onlineClose = document.getElementById('onlineClose');
+
+  /* 网易云官方外链：不托管、不复制任何音频文件，项目里没有也不需要本地音频 */
+  var NETEASE = 'https://music.163.com/outchain/player?type=2&id=4051656&auto=1&height=66';
+  var on = false;                    // 默认不打开
+
+  function setOn(v){
+    on = v;
+    if (on){
+      onlineFrame.src = NETEASE;     // 点击就是用户手势，满足自动播放限制
+      onlineBox.classList.add('show');
+      onlineBox.classList.remove('fold');
+      onlineClose.textContent = '− 收起';
+      musicBtn.classList.add('on');
+      musicTxt.textContent = '音乐 开';
+      musicBtn.title = '点一下关闭音乐';
+    } else {
+      onlineFrame.src = 'about:blank';
+      onlineBox.classList.remove('show','fold');
+      musicBtn.classList.remove('on');
+      musicTxt.textContent = '音乐 关';
+      musicBtn.title = '点一下打开 September（网易云官方外链）';
+    }
+  }
+
+  musicBtn.addEventListener('click', function(){ setOn(!on); });
+
+  /* 收起只是折起面板，iframe 仍在 DOM 内，音乐继续；音量在官方播放器里调 */
+  onlineClose.addEventListener('click', function(e){
+    e.stopPropagation();
+    var folded = onlineBox.classList.toggle('fold');
+    onlineClose.textContent = folded ? '+ 展开' : '− 收起';
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 · 最后一盏灯 · 打字机效果</title>
+<style>
+  :root{
+    --night:#050810;
+    --ground:#080D18;
+    --warm:#F6C85F;
+    --warm-lt:#FFF3C9;
+    --text:#FBF3DF;
+    --text-dim:#B9C7DE;
+    --text-faint:#6E82A6;
+    --pixel-font:"Fusion Pixel","Zpix","DotGothic16","Sarasa Mono SC","Microsoft YaHei",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#04060C;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+
+  #stage{
+    position:relative;flex:0 0 auto;
+    width:1440px;height:900px;
+    background:var(--night);
+    overflow:hidden;
+    transform-origin:center center;
+    font-family:var(--pixel-font);
+    -webkit-font-smoothing:none;
+  }
+
+  /* ---------- 场景 ---------- */
+  #ground{
+    position:absolute;left:0;top:556px;width:1440px;height:344px;
+    background:var(--ground);
+    border-top:4px solid #101A2C;
+  }
+  .lamp{position:absolute}
+  .lamp svg{width:100%;height:100%;display:block}
+
+  #boy{position:absolute;left:688px;top:640px;width:64px;height:96px}
+  #boy svg{width:100%;height:100%;display:block}
+
+  #del{position:absolute;left:733px;top:636px;width:24px;height:24px}
+  #del svg{width:100%;height:100%;display:block}
+
+  #glow{
+    position:absolute;left:665px;top:568px;width:160px;height:160px;
+    border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(255,237,168,.32) 0%,
+      rgba(255,216,120,.10) 46%,
+      rgba(255,216,120,0) 72%);
+    pointer-events:none;
+  }
+  #glow.burst{animation:glowBurst 1200ms ease-out}
+  @keyframes glowBurst{
+    0%{transform:scale(1);opacity:1}
+    24%{transform:scale(1.85);opacity:1}
+    100%{transform:scale(1.06);opacity:.9}
+  }
+
+  #star{position:absolute;left:713px;top:616px;width:64px;height:64px;pointer-events:none}
+  #star svg{width:100%;height:100%;display:block;animation:breathe 3.4s ease-in-out infinite}
+  @keyframes breathe{
+    0%,100%{opacity:.9;transform:scale(1)}
+    50%{opacity:1;transform:scale(1.06)}
+  }
+  #star.flash{animation:starFlash 950ms cubic-bezier(.2,.8,.3,1)}
+  @keyframes starFlash{
+    0%{transform:scale(1)}
+    26%{transform:scale(1.8);filter:drop-shadow(0 0 20px rgba(255,242,196,.95))}
+    100%{transform:scale(1)}
+  }
+
+  /* ---------- 打字文字 ---------- */
+  .words{position:absolute;left:0;top:0;width:1440px;height:900px}
+  .line{
+    position:absolute;left:0;width:1440px;
+    text-align:center;
+    white-space:pre;
+  }
+  .line .box{position:relative;display:inline-block;white-space:pre}
+  .line .ghost{visibility:hidden}
+  .line .live{position:absolute;left:0;top:0;white-space:pre}
+
+  .cur{
+    display:none;
+    width:.3em;height:.8em;
+    background:var(--warm-lt);
+    margin-left:.08em;
+    position:relative;top:.04em;
+    animation:blink .85s steps(1) infinite;
+  }
+  .cur.on{display:inline-block}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  #l1{top:146px;font-size:18px;letter-spacing:.22em;color:var(--text-faint)}
+  #l2{top:212px;font-size:52px;letter-spacing:.16em;color:var(--text);
+      text-shadow:6px 6px 0 rgba(3,5,11,.9)}
+  #l3{top:328px;font-size:24px;letter-spacing:.22em;color:var(--text-dim)}
+  #l4{top:382px;font-size:22px;letter-spacing:.13em;color:var(--text-dim)}
+  #l5{top:428px;font-size:22px;letter-spacing:.26em;color:var(--warm)}
+
+  /* ---------- 底部提示 ---------- */
+  /* 全站落款：不再是可点击的操作提示 */
+  #hint{
+    position:absolute;left:0;top:802px;width:1440px;text-align:center;
+    font-size:22px;letter-spacing:.42em;text-indent:.42em;
+    color:#F6EEDC;
+    text-shadow:0 0 20px rgba(246,200,95,.34),4px 4px 0 rgba(3,5,11,.9);
+    opacity:0;transform:translateY(10px);pointer-events:none;
+    transition:opacity 1400ms ease,transform 1400ms ease;
+  }
+  #hint.show{opacity:1;transform:translateY(0)}
+
+  #replay{
+    position:absolute;right:16px;top:14px;
+    font-family:inherit;font-size:12px;letter-spacing:.1em;
+    color:#42536E;background:none;border:none;cursor:pointer;
+    opacity:.55;transition:opacity .3s,color .3s;
+  }
+  #replay:hover{opacity:1;color:#8FA6C9}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="ground"></div>
+
+  <div class="lamp" style="left:340px;top:580px;width:40px;height:56px">
+    <svg viewBox="0 0 40 56"><rect x="18" y="24" width="4" height="30" fill="#1A2233"/><rect x="12" y="54" width="16" height="2" fill="#12192A"/><rect x="10" y="6" width="20" height="4" fill="#12192A"/><rect x="12" y="10" width="16" height="14" fill="#20293C"/></svg>
+  </div>
+  <div class="lamp" style="left:516px;top:672px;width:40px;height:56px">
+    <svg viewBox="0 0 40 56"><rect x="18" y="24" width="4" height="30" fill="#1A2233"/><rect x="12" y="54" width="16" height="2" fill="#12192A"/><rect x="10" y="6" width="20" height="4" fill="#12192A"/><rect x="12" y="10" width="16" height="14" fill="#20293C"/></svg>
+  </div>
+  <div class="lamp" style="left:924px;top:616px;width:40px;height:56px">
+    <svg viewBox="0 0 40 56"><rect x="18" y="24" width="4" height="30" fill="#1A2233"/><rect x="12" y="54" width="16" height="2" fill="#12192A"/><rect x="10" y="6" width="20" height="4" fill="#12192A"/><rect x="12" y="10" width="16" height="14" fill="#20293C"/></svg>
+  </div>
+  <div class="lamp" style="left:1088px;top:576px;width:40px;height:56px">
+    <svg viewBox="0 0 40 56"><rect x="18" y="24" width="4" height="30" fill="#1A2233"/><rect x="12" y="54" width="16" height="2" fill="#12192A"/><rect x="10" y="6" width="20" height="4" fill="#12192A"/><rect x="12" y="10" width="16" height="14" fill="#20293C"/></svg>
+  </div>
+
+  <div id="glow"></div>
+
+  <div id="boy">
+    <svg viewBox="0 0 64 96">
+      <rect x="14" y="90" width="36" height="6" fill="#03060B" fill-opacity="0.6"/>
+      <rect x="24" y="62" width="8" height="26" fill="#161F2D"/>
+      <rect x="34" y="62" width="8" height="26" fill="#161F2D"/>
+      <rect x="22" y="86" width="12" height="6" fill="#090E16"/>
+      <rect x="32" y="86" width="12" height="6" fill="#090E16"/>
+      <rect x="20" y="30" width="26" height="34" fill="#232F42"/>
+      <rect x="20" y="30" width="26" height="5" fill="#2B3A52"/>
+      <rect x="14" y="32" width="6" height="22" fill="#232F42"/>
+      <rect x="46" y="16" width="6" height="20" fill="#232F42"/>
+      <rect x="45" y="10" width="8" height="7" fill="#D8BD96"/>
+      <rect x="24" y="8" width="18" height="22" fill="#2E2116"/>
+      <rect x="24" y="8" width="18" height="5" fill="#3A2A1B"/>
+      <rect x="26" y="36" width="14" height="15" fill="#4A3B29"/>
+      <rect x="26" y="36" width="14" height="3" fill="#584735"/>
+    </svg>
+  </div>
+
+  <div id="del">
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" fill="#D9E4EE"/>
+      <rect x="3" y="3" width="18" height="4" fill="#F2F8FC"/>
+      <rect x="9" y="9" width="8" height="8" fill="#A8BCCB"/>
+      <rect x="11" y="11" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="2" y="21" width="20" height="3" fill="#B4C4D2"/>
+    </svg>
+  </div>
+
+  <div id="star">
+    <svg viewBox="0 0 64 64">
+      <rect x="30" y="2" width="4" height="60" fill="#FFF3C9" fill-opacity="0.9"/>
+      <rect x="2" y="30" width="60" height="4" fill="#FFF3C9" fill-opacity="0.9"/>
+      <rect x="27" y="27" width="10" height="10" fill="#FFFFFF"/>
+      <rect x="20" y="20" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="41" y="20" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="20" y="41" width="3" height="3" fill="#FFE9A8"/>
+      <rect x="41" y="41" width="3" height="3" fill="#FFE9A8"/>
+    </svg>
+  </div>
+
+  <div class="words">
+    <p class="line" id="l1"><span class="box"><span class="ghost">我有一句很喜欢的陈奕迅的歌词</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l2"><span class="box"><span class="ghost">不要紧 山野都有路灯</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l3"><span class="box"><span class="ghost">或许我们的山路很长</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l4"><span class="box"><span class="ghost">那就希望我们可以一直收集路上的灯</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+    <p class="line" id="l5"><span class="box"><span class="ghost">点亮心的光吧</span><span class="live"><span class="typed"></span><span class="cur"></span></span></span></p>
+  </div>
+
+  <p id="hint">晚安寿星</p>
+  <button id="replay">↻ 重播</button>
+</div>
+
+<script>
+(function(){
+  var stage  = document.getElementById('stage');
+  var star   = document.getElementById('star');
+  var glow   = document.getElementById('glow');
+  var hint   = document.getElementById('hint');
+  var replay = document.getElementById('replay');
+
+  /* ---------- 等比缩放，适配任意窗口 ---------- */
+  function fit(){
+    var s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  /* ---------- 打字脚本：每行速度不同，主句最慢 ---------- */
+  var LINES = [
+    { sel:'#l1', text:'我有一句很喜欢的陈奕迅的歌词',            speed: 56, hold: 560 },
+    { sel:'#l2', text:'不要紧 山野都有路灯',                    speed:128, hold: 700 },
+    { sel:'#l3', text:'或许我们的山路很长',                      speed: 78, hold: 320 },
+    { sel:'#l4', text:'那就希望我们可以一直收集路上的灯',          speed: 70, hold: 360 },
+    { sel:'#l5', text:'点亮心的光吧',                            speed:142, hold: 560 }
+  ];
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  var running = false;
+
+  function reset(){
+    document.querySelectorAll('.typed').forEach(function(el){ el.textContent = ''; });
+    document.querySelectorAll('.cur').forEach(function(el){ el.classList.remove('on'); });
+    star.classList.remove('flash');
+    glow.classList.remove('burst');
+    hint.classList.remove('show');
+  }
+
+  async function typeLine(cfg){
+    var root  = document.querySelector(cfg.sel);
+    var typed = root.querySelector('.typed');
+    var cur   = root.querySelector('.cur');
+    cur.classList.add('on');
+
+    var chars = Array.from(cfg.text);
+    for (var i = 0; i < chars.length; i++){
+      var ch = chars[i];
+      typed.textContent += ch;
+      // 每个字的间隔带轻微抖动，接近真实打字手感
+      var d = cfg.speed * (0.82 + Math.random() * 0.42);
+      if (ch === ' ') d += 150;
+      await sleep(d);
+    }
+
+    cur.classList.remove('on');
+    await sleep(cfg.hold);
+  }
+
+  async function run(){
+    if (running) return;
+    running = true;
+    reset();
+
+    // 画面先静一下，再开始打字
+    await sleep(650);
+
+    for (var i = 0; i < LINES.length; i++){
+      await typeLine(LINES[i]);
+    }
+
+    // 最后一个字落下：熄灯器迸出星芒
+    star.classList.add('flash');
+    glow.classList.add('burst');
+
+    await sleep(620);
+    hint.classList.add('show');
+
+    running = false;
+  }
+
+  replay.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (running) return;
+    run();
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>

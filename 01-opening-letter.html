@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 · 给今天的你 · 开场信</title>
+<style>
+  :root{
+    --night:#0B1226;
+    --paper:#F3E4C6;
+    --ink:#3B2A1C;
+    --ink-soft:#8A7A62;
+    --line:#E4D2B0;
+    --edge:#5C3B23;
+    --pixel-font:"Fusion Pixel","Zpix","DotGothic16","Sarasa Mono SC","Microsoft YaHei",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#050810;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+
+  #stage{
+    position:relative;flex:0 0 auto;
+    width:1440px;height:900px;
+    background:var(--night);
+    overflow:hidden;
+    transform-origin:center center;
+    font-family:var(--pixel-font);
+    -webkit-font-smoothing:none;
+  }
+
+  /* ---------- 夜空 ---------- */
+  #stars{position:absolute;inset:0}
+  #lampGlow{
+    position:absolute;left:1020px;top:-220px;width:640px;height:640px;
+    border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(246,200,95,.20) 0%,
+      rgba(246,200,95,.05) 45%,
+      rgba(246,200,95,0) 72%);
+  }
+  #chapter{
+    position:absolute;left:240px;top:60px;
+    font-size:12px;letter-spacing:4px;color:#6E82A6;
+  }
+
+  /* ---------- 信纸 ---------- */
+  #shadow{
+    position:absolute;left:256px;top:106px;width:960px;height:700px;
+    background:#06101F;opacity:.62;
+    clip-path:inset(50% 0 50% 0);
+  }
+  /* 折叠态：中间一条窄纸带，作为展开的起点 */
+  #folded{
+    position:absolute;left:240px;top:428px;width:960px;height:24px;
+    background:var(--paper);
+    border:8px solid var(--edge);
+    transition:opacity 260ms ease;
+  }
+  #folded.hide{opacity:0}
+  #paper{
+    position:absolute;left:240px;top:90px;width:960px;height:700px;
+    background:var(--paper);
+    border:8px solid var(--edge);
+    box-sizing:content-box;
+    /* 折叠态：中间一条缝，展开时向上下打开 */
+    clip-path:inset(50% 0 50% 0);
+    filter:brightness(.82);
+    transition:clip-path 1150ms cubic-bezier(.22,.78,.24,1), filter 1150ms ease;
+  }
+  #paper.open{clip-path:inset(0 0 0 0);filter:brightness(1)}
+  #shadow.open{clip-path:inset(0 0 0 0);transition:clip-path 1150ms cubic-bezier(.22,.78,.24,1)}
+
+  /* 信纸装饰层 */
+  .fold{position:absolute;background:var(--line);pointer-events:none}
+  #foldV{left:478px;top:8px;width:3px;height:684px}
+  #foldH{left:8px;top:348px;width:944px;height:3px}
+  #cornerTL{left:8px;top:8px;width:40px;height:8px;background:#E9D7B6}
+  #cornerTR{right:8px;top:8px;width:40px;height:8px;background:#E9D7B6}
+
+  #date{
+    position:absolute;left:800px;top:44px;width:80px;text-align:right;
+    font-size:13px;letter-spacing:4px;color:#8A5C35;
+  }
+  #dateLine{position:absolute;left:800px;top:72px;width:80px;height:2px;background:#C9B79A}
+
+  /* ---------- 逐行文字 ---------- */
+  .r{
+    position:absolute;left:80px;width:800px;
+    font-size:22px;line-height:46px;letter-spacing:2px;color:var(--ink);
+    white-space:pre;
+    opacity:0;transform:translateY(8px);
+    transition:opacity 720ms ease, transform 720ms ease;
+  }
+  .r.show{opacity:1;transform:translateY(0)}
+  #r1{top:100px}
+  #r2{top:192px}
+  #r3{top:284px}
+  #r4{top:330px}
+  #r5{top:376px}
+  #r6{top:422px}
+  #r7{top:514px}
+  #r8{top:584px;color:var(--ink-soft)}
+  #sign{
+    position:absolute;left:600px;top:648px;width:280px;text-align:right;
+    font-size:20px;letter-spacing:6px;color:#5C3B23;
+    opacity:0;transition:opacity 900ms ease;
+  }
+  #sign.show{opacity:1}
+
+  #hint{
+    position:absolute;left:0;top:834px;width:1440px;text-align:center;
+    font-size:15px;letter-spacing:3px;color:#8FA6C9;
+    opacity:0;transition:opacity 1000ms ease;
+  }
+  #hint.show{opacity:1}
+  #stage.ready{cursor:pointer}
+
+  #replay{
+    position:absolute;right:16px;top:14px;
+    font-family:inherit;font-size:12px;letter-spacing:.1em;
+    color:#42536E;background:none;border:none;cursor:pointer;
+    opacity:.55;transition:opacity .3s,color .3s;
+  }
+  #replay:hover{opacity:1;color:#8FA6C9}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <svg id="stars" width="1440" height="900" viewBox="0 0 1440 900">
+    <rect x="96" y="64" width="6" height="6" fill="#9FB3D4" fill-opacity="0.5"/>
+    <rect x="232" y="132" width="4" height="4" fill="#9FB3D4" fill-opacity="0.35"/>
+    <rect x="382" y="52" width="6" height="6" fill="#9FB3D4" fill-opacity="0.45"/>
+    <rect x="1046" y="84" width="6" height="6" fill="#9FB3D4" fill-opacity="0.4"/>
+    <rect x="1214" y="164" width="4" height="4" fill="#9FB3D4" fill-opacity="0.3"/>
+    <rect x="1332" y="56" width="6" height="6" fill="#9FB3D4" fill-opacity="0.45"/>
+    <rect x="76" y="812" width="6" height="6" fill="#9FB3D4" fill-opacity="0.3"/>
+    <rect x="1320" y="806" width="4" height="4" fill="#9FB3D4" fill-opacity="0.28"/>
+    <rect x="1112" y="356" width="4" height="4" fill="#9FB3D4" fill-opacity="0.22"/>
+    <rect x="300" y="420" width="4" height="4" fill="#9FB3D4" fill-opacity="0.2"/>
+  </svg>
+  <div id="lampGlow"></div>
+  <div id="chapter">01 · 给今天的你</div>
+
+  <div id="shadow"></div>
+  <div id="folded"></div>
+  <div id="paper">
+    <div class="fold" id="foldV"></div>
+    <div class="fold" id="foldH"></div>
+    <div id="cornerTL"></div>
+    <div id="cornerTR"></div>
+    <div id="date">立冬</div>
+    <div id="dateLine"></div>
+
+    <p class="r" id="r1">首先祝你生日快乐，虽然已经说过了嘿嘿。</p>
+    <p class="r" id="r2">今天是冷冷的立冬，那就祝你今年都不会感冒吧。</p>
+    <p class="r" id="r3">学了这个工科，让我本来就漏漏的、记不住事的脑子更是健忘了。</p>
+    <p class="r" id="r4">但是昨天晚上准备退 steam 的时候，看到了你送我的小游戏，</p>
+    <p class="r" id="r5">所以我就想起了这个我好几年都没有想起来的日子，</p>
+    <p class="r" id="r6">也想起了我把战线拉了好久好久、都没有写完的高中回忆录。</p>
+    <p class="r" id="r7">所以我决定好好以另一个形式，先记一点。</p>
+    <p class="r" id="r8">一点点。</p>
+
+    <div id="sign">立冬</div>
+  </div>
+
+  <p id="hint">轻触任意处 · 继续往前走</p>
+  <button id="replay">↻ 重播</button>
+</div>
+
+<script>
+(function(){
+  var stage  = document.getElementById('stage');
+  var paper  = document.getElementById('paper');
+  var shadow = document.getElementById('shadow');
+  var folded = document.getElementById('folded');
+  var sign   = document.getElementById('sign');
+  var hint   = document.getElementById('hint');
+  var replay = document.getElementById('replay');
+  var rows   = Array.prototype.slice.call(document.querySelectorAll('.r'));
+
+  function fit(){
+    var s = Math.min(window.innerWidth / 1440, window.innerHeight / 900);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  /* 逐行浮现节奏：段落之间留白更久，最后一句单独停一下 */
+  var PACES = [620, 780, 520, 480, 480, 900, 900, 1150];
+
+  var running = false;
+  var leaving = false;
+
+  function reset(){
+    paper.classList.remove('open');
+    shadow.classList.remove('open');
+    folded.classList.remove('hide');
+    sign.classList.remove('show');
+    hint.classList.remove('show');
+    stage.classList.remove('ready');
+    rows.forEach(function(el){ el.classList.remove('show'); });
+  }
+
+  async function run(){
+    if (running) return;
+    running = true;
+    reset();
+
+    // 先让夜空静一下
+    await sleep(450);
+
+    // 旧信纸从中间折缝向上下展开
+    folded.classList.add('hide');
+    paper.classList.add('open');
+    shadow.classList.add('open');
+    await sleep(1250);
+
+    // 文字逐行浮现
+    for (var i = 0; i < rows.length; i++){
+      rows[i].classList.add('show');
+      await sleep(PACES[i]);
+    }
+
+    sign.classList.add('show');
+    await sleep(700);
+    hint.classList.add('show');
+    stage.classList.add('ready');
+
+    running = false;
+  }
+
+  /* 结尾提示出现后才允许进入 02：展开与逐行浮现途中点击不会误跳 */
+  function canLeave(){
+    return !leaving && !running && hint.classList.contains('show');
+  }
+  function goNext(){
+    leaving = true;
+    stage.classList.remove('ready');
+    window.location.href = '02-memory-map.html';
+  }
+  stage.addEventListener('click', function(e){
+    if (!canLeave() || e.target === replay) return;
+    goNext();
+  });
+  document.addEventListener('keydown', function(e){
+    if (!canLeave()) return;
+    if (e.target && e.target.tagName === 'BUTTON') return;  // 焦点在重播按钮上时不抢按键
+    if (e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      goNext();
+    }
+  });
+
+  replay.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (!running) run();
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>
